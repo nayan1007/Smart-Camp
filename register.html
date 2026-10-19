@@ -1,0 +1,917 @@
+{% extends "base.html" %}
+
+{% block title %}Account Registration • Smart Campus Electronics Rental{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-4 sm:py-8">
+  
+  <!-- In-Page Back Button -->
+  <div class="mb-4">
+    <button type="button" onclick="goBack()" class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 hover:text-blue-600 border border-slate-200 shadow-sm transition active:scale-95 group">
+      <i data-lucide="arrow-left" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-transform"></i>
+      <span>Back to Previous Screen</span>
+    </button>
+  </div>
+
+  <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
+    
+    <!-- Role Switcher Tabs for Registration -->
+    <div class="mb-6">
+      <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Select Registration Role:</label>
+      <div class="grid grid-cols-3 gap-1.5 p-1.5 bg-slate-100 rounded-xl border border-slate-200">
+        
+        <!-- Student Role Tab -->
+        <button 
+          type="button" 
+          id="regTabStudent"
+          onclick="switchRegisterRole('student')" 
+          class="reg-role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all shadow-sm bg-white text-blue-700 shadow-slate-200"
+        >
+          <i data-lucide="graduation-cap" class="w-4 h-4 mb-1 sm:mb-0 sm:mr-1.5"></i>
+          <span>Student</span>
+        </button>
+
+        <!-- Staff Role Tab -->
+        <button 
+          type="button" 
+          id="regTabStaff"
+          onclick="switchRegisterRole('staff')" 
+          class="reg-role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all"
+        >
+          <i data-lucide="qr-code" class="w-4 h-4 mb-1 sm:mb-0 sm:mr-1.5"></i>
+          <span>Staff Desk</span>
+        </button>
+
+        <!-- Admin Role Tab -->
+        <button 
+          type="button" 
+          id="regTabAdmin"
+          onclick="switchRegisterRole('admin')" 
+          class="reg-role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all"
+        >
+          <i data-lucide="shield" class="w-4 h-4 mb-1 sm:mb-0 sm:mr-1.5"></i>
+          <span>Administrator</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Header Details Banner -->
+    <div class="mb-6 pb-4 border-b border-slate-100">
+      <span id="regPortalBadge" class="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 uppercase tracking-wider">
+        Student Registration
+      </span>
+      <h2 id="regPortalHeading" class="text-2xl font-extrabold text-slate-900 mt-2">Create Student Account</h2>
+      <p id="regPortalDescription" class="text-xs text-slate-500 mt-1">
+        Register to rent laptops, cameras, lab equipment, and access the AI rental assistant.
+      </p>
+    </div>
+
+    <form id="registrationForm" method="POST" action="{{ url_for('auth.register') }}" novalidate class="space-y-5">
+      <!-- Hidden Role Input -->
+      <input type="hidden" name="role" id="roleInput" value="{{ selected_role or 'student' }}">
+      
+      <!-- Row 1: Full Name & Student / Employee ID -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
+        <!-- Full Name (1, 2, or 3 words only) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="nameInput" class="block text-xs font-bold text-slate-700 uppercase">
+              Full Name <span class="text-red-500">*</span>
+            </label>
+            <span id="nameWordBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+              1 to 3 words
+            </span>
+          </div>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="nameInput" 
+              name="name" 
+              required 
+              value="{{ form_data.get('name', '') if form_data else '' }}"
+              placeholder="e.g. Ananya Sen" 
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              autocomplete="name"
+            >
+          </div>
+          <!-- Live Helper & Feedback (Only displays when wrong) -->
+          <div id="nameFeedback" class="mt-1 text-xs text-red-600 flex items-center space-x-1"></div>
+        </div>
+
+        <!-- Role ID (Student Roll / Staff Employee ID / Admin Faculty ID) -->
+        <div>
+          <label for="studentIdInput" id="idLabel" class="block text-xs font-bold text-slate-700 uppercase mb-1">
+            University Roll / Student ID <span class="text-red-500">*</span>
+          </label>
+          <div class="relative">
+            <input 
+              type="text" 
+              id="studentIdInput" 
+              name="student_id" 
+              required 
+              value="{{ form_data.get('student_id', '') if form_data else '' }}"
+              placeholder="e.g. STU-2024-150" 
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            >
+          </div>
+          <p id="idHelpText" class="mt-1.5 text-xs text-slate-400">Official campus identification code</p>
+        </div>
+      </div>
+
+      <!-- Row 2: Campus Email & Contact Phone -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
+        <!-- Campus Email with Incorrect Popup Validation -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="emailInput" id="regEmailLabel" class="block text-xs font-bold text-slate-700 uppercase">
+              Campus Email <span class="text-red-500">*</span>
+            </label>
+            <span id="emailBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+              Format check
+            </span>
+          </div>
+          <div class="relative">
+            <input 
+              type="email" 
+              id="emailInput" 
+              name="email" 
+              required 
+              value="{{ form_data.get('email', '') if form_data else '' }}"
+              placeholder="e.g. ananya@campus.edu" 
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              autocomplete="email"
+            >
+          </div>
+          <!-- Live Email Feedback -->
+          <div id="emailFeedback" class="mt-1.5 text-xs text-slate-500 flex items-center space-x-1 min-h-[18px]">
+            <span>Must be a valid email (e.g. student@campus.edu).</span>
+          </div>
+        </div>
+
+        <!-- Contact Phone (10 digits proper validation) -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="phoneInput" class="block text-xs font-bold text-slate-700 uppercase">
+              Contact Phone <span class="text-red-500">*</span>
+            </label>
+            <span id="phoneBadge" class="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600">
+              10 digits
+            </span>
+          </div>
+          <div class="relative">
+            <input 
+              type="tel" 
+              id="phoneInput" 
+              name="phone" 
+              required 
+              value="{{ form_data.get('phone', '') if form_data else '' }}"
+              placeholder="e.g. 9876543210 or +91 9876543210" 
+              class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              autocomplete="tel"
+            >
+          </div>
+          <!-- Live Phone Feedback -->
+          <div id="phoneFeedback" class="mt-1.5 text-xs text-slate-500 flex items-center space-x-1 min-h-[18px]">
+            <span>Valid 10-digit mobile number for notification reminders.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Department / Unit & Role Security Passkey -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        
+        <!-- Academic Department / Unit -->
+        <div>
+          <label for="deptSelect" id="deptLabel" class="block text-xs font-bold text-slate-700 uppercase mb-1">
+            Academic Department
+          </label>
+          <select id="deptSelect" name="department" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+            <!-- Student Department Options -->
+            <optgroup id="studentDeptGroup" label="Academic Departments">
+              <option value="Computer Science" selected>Computer Science & Engineering</option>
+              <option value="Mechanical Eng">Mechanical Engineering</option>
+              <option value="Electrical & Electronics">Electrical & Electronics</option>
+              <option value="Media & Design">Media, Film & Visual Design</option>
+              <option value="Civil Engineering">Civil & Architecture</option>
+              <option value="Biotechnology">Biotechnology</option>
+            </optgroup>
+            <!-- Staff & Admin Department Options -->
+            <optgroup id="staffDeptGroup" label="Campus Operations & Labs" class="hidden">
+              <option value="Central Lab & Tech Desk">Central Lab & Tech Desk</option>
+              <option value="Audio-Visual Center Room 104">Audio-Visual Center Room 104</option>
+              <option value="Hardware Lab Room 204">Hardware Lab Room 204</option>
+              <option value="Media Studio Room 305">Media Studio Room 305</option>
+              <option value="Campus Tech Administration">Campus Tech Administration</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- Staff Access Key (Only shown for Staff) -->
+        <div id="staffPasskeyContainer" class="hidden">
+          <div class="flex items-center justify-between mb-1">
+            <label for="staffKeyInput" class="block text-xs font-bold text-slate-700 uppercase">
+              Staff Authorization Key <span class="text-red-500">*</span>
+            </label>
+            <span class="text-[10px] font-semibold text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded">
+              Demo: STAFF-DESK-2026
+            </span>
+          </div>
+          <input 
+            type="text" 
+            id="staffKeyInput" 
+            name="staff_access_key" 
+            placeholder="e.g. STAFF-DESK-2026" 
+            class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+          >
+          <p class="mt-1 text-[11px] text-slate-400">Campus staff authorization passcode</p>
+        </div>
+
+        <!-- Admin Master Key (Only shown for Admin) -->
+        <div id="adminPasskeyContainer" class="hidden">
+          <div class="flex items-center justify-between mb-1">
+            <label for="adminKeyInput" class="block text-xs font-bold text-slate-700 uppercase">
+              Master Admin Passkey <span class="text-red-500">*</span>
+            </label>
+            <span class="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded">
+              Demo: ADMIN-MASTER-2026
+            </span>
+          </div>
+          <input 
+            type="password" 
+            id="adminKeyInput" 
+            name="admin_access_key" 
+            placeholder="e.g. ADMIN-MASTER-2026" 
+            class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+          >
+          <p class="mt-1 text-[11px] text-slate-400">Administrator security passkey</p>
+        </div>
+
+        <!-- Password Field (If student, fills this column) -->
+        <div id="studentPasswordPlaceholder">
+          <!-- Handled below -->
+        </div>
+      </div>
+
+      <!-- Row 4: Account Password -->
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label for="passwordInput" class="block text-xs font-bold text-slate-700 uppercase">
+            Account Password <span class="text-red-500">*</span>
+          </label>
+          <button type="button" id="togglePasswordBtn" class="text-[11px] font-semibold text-blue-600 hover:text-blue-800">
+            Show
+          </button>
+        </div>
+        <div class="relative">
+          <input 
+            type="password" 
+            id="passwordInput" 
+            name="password" 
+            required 
+            placeholder="e.g. Secure#Pass2026" 
+            class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+            autocomplete="new-password"
+          >
+        </div>
+        <!-- Password Strength Meter Bar -->
+        <div class="mt-2 w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+          <div id="passwordStrengthBar" class="h-full bg-slate-300 w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- Password Requirements Interactive Checklist -->
+      <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-2">Password Security Requirements:</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <!-- Uppercase Letter Requirement -->
+          <div id="reqUppercase" class="flex items-center space-x-2 text-slate-500 transition">
+            <span class="req-icon w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">✕</span>
+            <span>At least <strong>1 Uppercase Letter</strong> (A-Z)</span>
+          </div>
+
+          <!-- Special Character Requirement -->
+          <div id="reqSpecial" class="flex items-center space-x-2 text-slate-500 transition">
+            <span class="req-icon w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">✕</span>
+            <span>At least <strong>1 Special Character</strong> (!@#$%^&*)</span>
+          </div>
+
+          <!-- Minimum Length Requirement -->
+          <div id="reqLength" class="flex items-center space-x-2 text-slate-500 transition">
+            <span class="req-icon w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">✕</span>
+            <span>Minimum <strong>8 characters</strong></span>
+          </div>
+
+          <!-- Lowercase / Number Requirement -->
+          <div id="reqNumber" class="flex items-center space-x-2 text-slate-500 transition">
+            <span class="req-icon w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold">✕</span>
+            <span>At least 1 lowercase or number</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit & Action Buttons -->
+      <div class="pt-2 flex flex-col sm:flex-row items-center gap-3">
+        <button 
+          type="button" 
+          onclick="goBack()" 
+          class="w-full sm:w-auto px-5 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-sm transition flex items-center justify-center"
+        >
+          <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Back
+        </button>
+        <button 
+          type="submit" 
+          id="submitRegisterBtn"
+          class="flex-1 w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition flex items-center justify-center"
+        >
+          <i data-lucide="user-plus" class="w-4 h-4 mr-2"></i> <span id="submitBtnText">Register Student Account</span>
+        </button>
+      </div>
+    </form>
+
+    <div class="mt-6 pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+      <div>
+        Already have a campus account? 
+        <a id="signInLink" href="{{ url_for('auth.login', role=selected_role or 'student') }}" class="font-bold text-blue-600 hover:underline ml-1">Sign In</a>
+      </div>
+      <button type="button" onclick="goBack()" class="font-semibold text-slate-500 hover:text-slate-800 flex items-center">
+        <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- Interactive Validation Error Pop-Up Modal                      -->
+<!-- ============================================================== -->
+<div id="validationPopupModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4 transition-opacity">
+  <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 transform transition-all text-left animate-in fade-in zoom-in-95 duration-200">
+    <div class="flex items-start space-x-3.5">
+      <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0 shadow-sm">
+        <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+      </div>
+      <div class="flex-1">
+        <h3 id="popupModalTitle" class="text-base font-extrabold text-slate-900">Validation Error</h3>
+        <p id="popupModalSubtitle" class="text-xs text-slate-500 mt-0.5">Please correct the highlighted fields to continue registration:</p>
+      </div>
+      <button type="button" onclick="closeValidationPopup()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+    </div>
+
+    <!-- Error Items List -->
+    <div id="popupModalErrorsList" class="my-4 p-3.5 bg-red-50/70 border border-red-200/80 rounded-xl text-xs text-red-800 space-y-2 max-h-60 overflow-y-auto">
+      <!-- Injected dynamically -->
+    </div>
+
+    <!-- Modal Actions -->
+    <div class="mt-5 flex items-center space-x-2 justify-end">
+      <button type="button" onclick="closeValidationPopup()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition">
+        Cancel
+      </button>
+      <button type="button" id="popupModalActionBtn" onclick="focusFirstInvalidField()" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md shadow-red-500/20 transition flex items-center">
+        <span>Correct Details</span>
+        <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1.5"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('registrationForm');
+  const roleInput = document.getElementById('roleInput');
+  const nameInput = document.getElementById('nameInput');
+  const emailInput = document.getElementById('emailInput');
+  const phoneInput = document.getElementById('phoneInput');
+  const passwordInput = document.getElementById('passwordInput');
+  const studentIdInput = document.getElementById('studentIdInput');
+  const staffKeyInput = document.getElementById('staffKeyInput');
+  const adminKeyInput = document.getElementById('adminKeyInput');
+  const togglePasswordBtn = document.getElementById('togglePasswordBtn');
+
+  // Requirement elements
+  const reqUpper = document.getElementById('reqUppercase');
+  const reqSpecial = document.getElementById('reqSpecial');
+  const reqLength = document.getElementById('reqLength');
+  const reqNumber = document.getElementById('reqNumber');
+  const strengthBar = document.getElementById('passwordStrengthBar');
+
+  let firstInvalidElement = null;
+
+  // Role Configurations
+  const regRoleConfigs = {
+    student: {
+      badge: 'Student Registration',
+      badgeClass: 'px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-50 text-emerald-700 uppercase tracking-wider',
+      heading: 'Create Student Account',
+      desc: 'Register to rent laptops, cameras, lab equipment, and access the AI rental assistant.',
+      idLabel: 'University Roll / Student ID *',
+      idPlaceholder: 'e.g. STU-2024-150',
+      idHelp: 'Campus ID card roll number',
+      deptLabel: 'Academic Department',
+      emailLabel: 'Campus Student Email *',
+      emailPlaceholder: 'e.g. ananya@campus.edu',
+      btnText: 'Register Student Account',
+      btnGradient: 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/25',
+      showStaffKey: false,
+      showAdminKey: false,
+      showStudentDept: true
+    },
+    staff: {
+      badge: 'Staff / Tech Desk Registration',
+      badgeClass: 'px-2.5 py-1 text-xs font-bold rounded-full bg-cyan-50 text-cyan-800 uppercase tracking-wider',
+      heading: 'Create Staff & Lab Manager Account',
+      desc: 'Register to manage checkout desks, QR badge barcode scanning, and return inspections.',
+      idLabel: 'Staff Employee ID *',
+      idPlaceholder: 'e.g. EMP-LAB-105',
+      idHelp: 'Official staff employment badge number',
+      deptLabel: 'Assigned Lab or Tech Desk',
+      emailLabel: 'Staff Campus Email *',
+      emailPlaceholder: 'e.g. staff.kumar@campus.edu',
+      btnText: 'Register Staff Account',
+      btnGradient: 'from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 shadow-cyan-500/25',
+      showStaffKey: true,
+      showAdminKey: false,
+      showStudentDept: false
+    },
+    admin: {
+      badge: 'Administrator Registration',
+      badgeClass: 'px-2.5 py-1 text-xs font-bold rounded-full bg-purple-50 text-purple-800 uppercase tracking-wider',
+      heading: 'Create Administrator Account',
+      desc: 'Register for AI ML demand prediction, booking approvals, student risk radar, and inventory control.',
+      idLabel: 'Faculty / Administrator ID *',
+      idPlaceholder: 'e.g. ADM-FAC-012',
+      idHelp: 'Department head or dean credentials',
+      deptLabel: 'Administrative Division',
+      emailLabel: 'Official Admin Email *',
+      emailPlaceholder: 'e.g. admin.rao@campus.edu',
+      btnText: 'Register Administrator Account',
+      btnGradient: 'from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 shadow-purple-500/25',
+      showStaffKey: false,
+      showAdminKey: true,
+      showStudentDept: false
+    }
+  };
+
+  // Switch Register Role
+  window.switchRegisterRole = function(role) {
+    if (!regRoleConfigs[role]) role = 'student';
+    roleInput.value = role;
+
+    const conf = regRoleConfigs[role];
+    document.getElementById('regPortalBadge').textContent = conf.badge;
+    document.getElementById('regPortalBadge').className = conf.badgeClass;
+    document.getElementById('regPortalHeading').textContent = conf.heading;
+    document.getElementById('regPortalDescription').textContent = conf.desc;
+    document.getElementById('idLabel').innerHTML = conf.idLabel;
+    studentIdInput.placeholder = conf.idPlaceholder;
+    document.getElementById('idHelpText').textContent = conf.idHelp;
+    document.getElementById('deptLabel').textContent = conf.deptLabel;
+    document.getElementById('regEmailLabel').innerHTML = conf.emailLabel;
+    emailInput.placeholder = conf.emailPlaceholder;
+    document.getElementById('submitBtnText').textContent = conf.btnText;
+    document.getElementById('signInLink').href = `/login?role=${role}`;
+
+    // Passkey visibility
+    const staffBox = document.getElementById('staffPasskeyContainer');
+    const adminBox = document.getElementById('adminPasskeyContainer');
+    staffBox.classList.toggle('hidden', !conf.showStaffKey);
+    adminBox.classList.toggle('hidden', !conf.showAdminKey);
+
+    // Department group toggle
+    const studentGrp = document.getElementById('studentDeptGroup');
+    const staffGrp = document.getElementById('staffDeptGroup');
+    if (conf.showStudentDept) {
+      studentGrp.classList.remove('hidden');
+      staffGrp.classList.add('hidden');
+    } else {
+      studentGrp.classList.add('hidden');
+      staffGrp.classList.remove('hidden');
+    }
+
+    // Tab buttons styling
+    ['student', 'staff', 'admin'].forEach(r => {
+      const btn = document.getElementById('regTab' + r.charAt(0).toUpperCase() + r.slice(1));
+      if (btn) {
+        if (r === role) {
+          btn.className = 'reg-role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all shadow-sm bg-white text-blue-700 shadow-slate-200';
+        } else {
+          btn.className = 'reg-role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all';
+        }
+      }
+    });
+
+    if (window.lucide) lucide.createIcons();
+  };
+
+  // Toggle Password Visibility
+  if (togglePasswordBtn && passwordInput) {
+    togglePasswordBtn.addEventListener('click', () => {
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        togglePasswordBtn.textContent = 'Hide';
+      } else {
+        passwordInput.type = 'password';
+        togglePasswordBtn.textContent = 'Show';
+      }
+    });
+  }
+
+  // 1. Full Name Validation: Exactly 1, 2, or 3 words only
+  function validateFullName(showFeedback = true) {
+    const rawVal = nameInput.value.trim();
+    const feedback = document.getElementById('nameFeedback');
+    const badge = document.getElementById('nameWordBadge');
+
+    if (!rawVal) {
+      if (showFeedback) {
+        setInputState(nameInput, 'neutral');
+        feedback.innerHTML = '';
+        if (badge) {
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 hidden';
+          badge.textContent = '';
+        }
+      }
+      return { valid: false, error: 'Full Name is required.' };
+    }
+
+    const words = rawVal.split(/\s+/).filter(Boolean);
+    const wordCount = words.length;
+
+    // Check characters: letters, hyphens, periods (for Dr.), and apostrophes only
+    const letterPattern = /^[A-Za-z]+(?:['\-][A-Za-z]+)?\.?$/;
+    const allLetters = words.every(w => letterPattern.test(w));
+
+    if (!allLetters) {
+      if (showFeedback) {
+        setInputState(nameInput, 'invalid');
+        feedback.innerHTML = '<span class="text-red-600 font-semibold">✕ Name can only contain letters and hyphens (no numbers or symbols).</span>';
+        if (badge) {
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-red-100 text-red-700';
+          badge.textContent = 'Invalid characters';
+        }
+      }
+      return { valid: false, error: 'Full Name can only contain letters (no numbers or special characters).' };
+    }
+
+    if (wordCount < 1 || wordCount > 3) {
+      if (showFeedback) {
+        setInputState(nameInput, 'invalid');
+        feedback.innerHTML = `<span class="text-red-600 font-semibold">✕ Name has ${wordCount} words. It must contain 1, 2, or 3 words only.</span>`;
+        if (badge) {
+          badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-red-100 text-red-700';
+          badge.textContent = `${wordCount} words (Max 3)`;
+        }
+      }
+      return { valid: false, error: `Full Name must contain 1, 2, or 3 words only (currently ${wordCount} words).` };
+    }
+
+    // Valid: When full name is correct, DO NOT show message to user! Only show error message when credential is wrong!
+    if (showFeedback) {
+      setInputState(nameInput, 'valid');
+      feedback.innerHTML = '';
+      if (badge) {
+        badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 hidden';
+        badge.textContent = '';
+      }
+    }
+    return { valid: true };
+  }
+
+  // 2. Email Validation: Proper format with incorrect pop-up
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  function validateEmail(showFeedback = true) {
+    const rawVal = emailInput.value.trim();
+    const feedback = document.getElementById('emailFeedback');
+    const badge = document.getElementById('emailBadge');
+
+    if (!rawVal) {
+      if (showFeedback) {
+        setInputState(emailInput, 'neutral');
+        feedback.innerHTML = '<span class="text-slate-500">Must be a valid email (e.g. student@campus.edu).</span>';
+        badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600';
+        badge.textContent = 'Format check';
+      }
+      return { valid: false, error: 'Campus Email is required.' };
+    }
+
+    if (!emailRegex.test(rawVal)) {
+      let specificHint = 'Incomplete email address.';
+      if (!rawVal.includes('@')) {
+        specificHint = "Missing '@' symbol in email address.";
+      } else if (!rawVal.split('@')[1] || !rawVal.split('@')[1].includes('.')) {
+        specificHint = "Missing domain extension (e.g. .edu, .com, .ac.in).";
+      }
+
+      if (showFeedback) {
+        setInputState(emailInput, 'invalid');
+        feedback.innerHTML = `<span class="text-red-600 font-semibold">✕ ${specificHint}</span>`;
+        badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-red-100 text-red-700';
+        badge.textContent = 'Invalid email';
+      }
+      return { valid: false, error: `Invalid Campus Email: ${specificHint} (e.g. user@campus.edu)` };
+    }
+
+    // Valid
+    if (showFeedback) {
+      setInputState(emailInput, 'valid');
+      feedback.innerHTML = '<span class="text-emerald-600 font-semibold">✓ Valid campus email address format.</span>';
+      badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800';
+      badge.textContent = 'Verified format';
+    }
+    return { valid: true };
+  }
+
+  // 3. Contact Phone Validation: 10 Digits
+  function validatePhone(showFeedback = true) {
+    const rawVal = phoneInput.value.trim();
+    const feedback = document.getElementById('phoneFeedback');
+    const badge = document.getElementById('phoneBadge');
+
+    if (!rawVal) {
+      if (showFeedback) {
+        setInputState(phoneInput, 'neutral');
+        feedback.innerHTML = '<span class="text-slate-500">Valid 10-digit mobile number for return reminders.</span>';
+        badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-600';
+        badge.textContent = '10 digits';
+      }
+      return { valid: false, error: 'Contact Phone number is required.' };
+    }
+
+    const cleanDigits = rawVal.replace(/[\s\-\(\)]/g, '');
+    let isValid = false;
+    let digitCount = cleanDigits.replace(/\D/g, '').length;
+
+    if (cleanDigits.startsWith('+')) {
+      const withoutPlus = cleanDigits.slice(1);
+      isValid = /^\d{10,13}$/.test(withoutPlus);
+    } else {
+      isValid = /^\d{10}$/.test(cleanDigits);
+    }
+
+    if (!isValid) {
+      if (showFeedback) {
+        setInputState(phoneInput, 'invalid');
+        feedback.innerHTML = `<span class="text-red-600 font-semibold">✕ Please enter a valid 10-digit number (${digitCount} digits detected).</span>`;
+        badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-red-100 text-red-700';
+        badge.textContent = `${digitCount}/10 digits`;
+      }
+      return { valid: false, error: 'Contact Phone must be a valid 10-digit mobile number (e.g. 9876543210 or +91 9876543210).' };
+    }
+
+    // Valid
+    if (showFeedback) {
+      setInputState(phoneInput, 'valid');
+      feedback.innerHTML = '<span class="text-emerald-600 font-semibold">✓ Valid 10-digit contact mobile number.</span>';
+      badge.className = 'text-[10px] font-semibold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800';
+      badge.textContent = '10 digits (Valid)';
+    }
+    return { valid: true };
+  }
+
+  // 4. Password Validation: Uppercase + Special Character + Min 8
+  function validatePassword(showFeedback = true) {
+    const val = passwordInput.value;
+    const hasUpper = /[A-Z]/.test(val);
+    const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(val);
+    const hasLength = val.length >= 8;
+    const hasNumberOrLower = /[0-9a-z]/.test(val);
+
+    updateRequirementBadge(reqUpper, hasUpper);
+    updateRequirementBadge(reqSpecial, hasSpecial);
+    updateRequirementBadge(reqLength, hasLength);
+    updateRequirementBadge(reqNumber, hasNumberOrLower);
+
+    let score = 0;
+    if (hasLength) score += 25;
+    if (hasUpper) score += 25;
+    if (hasSpecial) score += 25;
+    if (hasNumberOrLower) score += 25;
+
+    strengthBar.style.width = score + '%';
+    if (score <= 25) {
+      strengthBar.className = 'h-full bg-red-500 transition-all duration-300';
+    } else if (score <= 75) {
+      strengthBar.className = 'h-full bg-amber-500 transition-all duration-300';
+    } else {
+      strengthBar.className = 'h-full bg-emerald-500 transition-all duration-300';
+    }
+
+    const errors = [];
+    if (!hasLength) errors.push('Password must be at least 8 characters long.');
+    if (!hasUpper) errors.push('Password must contain at least one uppercase letter (A-Z).');
+    if (!hasSpecial) errors.push('Password must contain at least one special character (!@#$%^&*).');
+
+    const isValid = hasUpper && hasSpecial && hasLength;
+
+    if (showFeedback) {
+      if (val.length === 0) {
+        setInputState(passwordInput, 'neutral');
+      } else if (isValid) {
+        setInputState(passwordInput, 'valid');
+      } else {
+        setInputState(passwordInput, 'invalid');
+      }
+    }
+
+    return { valid: isValid, errors: errors };
+  }
+
+  function updateRequirementBadge(elem, isMet) {
+    if (!elem) return;
+    const icon = elem.querySelector('.req-icon');
+    if (isMet) {
+      elem.classList.remove('text-slate-500', 'text-red-600');
+      elem.classList.add('text-emerald-700', 'font-semibold');
+      if (icon) {
+        icon.className = 'req-icon w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-[10px] font-bold';
+        icon.textContent = '✓';
+      }
+    } else {
+      elem.classList.remove('text-emerald-700', 'font-semibold');
+      elem.classList.add('text-slate-500');
+      if (icon) {
+        icon.className = 'req-icon w-4 h-4 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-[10px] font-bold';
+        icon.textContent = '✕';
+      }
+    }
+  }
+
+  function setInputState(elem, state) {
+    if (!elem) return;
+    elem.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'border-emerald-400', 'ring-emerald-200');
+    if (state === 'invalid') {
+      elem.classList.add('border-red-400', 'ring-2', 'ring-red-200');
+    } else if (state === 'valid') {
+      elem.classList.add('border-emerald-400', 'ring-2', 'ring-emerald-200');
+    }
+  }
+
+  // Event Listeners
+  nameInput.addEventListener('input', () => validateFullName(true));
+  emailInput.addEventListener('input', () => validateEmail(true));
+  phoneInput.addEventListener('input', () => validatePhone(true));
+  passwordInput.addEventListener('input', () => validatePassword(true));
+
+  // Blur Listeners - Popup toast when leaving name, email or contact if invalid
+  nameInput.addEventListener('blur', () => {
+    if (nameInput.value.trim().length > 0) {
+      const res = validateFullName(true);
+      if (!res.valid) {
+        showValidationPopup([res.error], 'Incorrect Full Name', nameInput);
+      }
+    }
+  });
+
+  emailInput.addEventListener('blur', () => {
+    if (emailInput.value.trim().length > 0) {
+      const res = validateEmail(true);
+      if (!res.valid) {
+        showValidationPopup([res.error], 'Incorrect Email Address', emailInput);
+      }
+    }
+  });
+
+  phoneInput.addEventListener('blur', () => {
+    if (phoneInput.value.trim().length > 0) {
+      const res = validatePhone(true);
+      if (!res.valid) {
+        showValidationPopup([res.error], 'Incorrect Contact Phone', phoneInput);
+      }
+    }
+  });
+
+  // Modal Logic
+  window.showValidationPopup = function(errors, title = 'Validation Required', focusElem = null) {
+    const modal = document.getElementById('validationPopupModal');
+    const titleElem = document.getElementById('popupModalTitle');
+    const listElem = document.getElementById('popupModalErrorsList');
+    if (!modal) return;
+
+    firstInvalidElement = focusElem;
+    if (titleElem) titleElem.textContent = title;
+
+    if (listElem) {
+      listElem.innerHTML = '';
+      errors.forEach(err => {
+        const item = document.createElement('div');
+        item.className = 'flex items-start space-x-2';
+        item.innerHTML = `
+          <span class="text-red-500 font-bold shrink-0 mt-0.5">•</span>
+          <span class="font-medium">${err}</span>
+        `;
+        listElem.appendChild(item);
+      });
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    if (window.lucide) lucide.createIcons();
+  };
+
+  window.closeValidationPopup = function() {
+    const modal = document.getElementById('validationPopupModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  };
+
+  window.focusFirstInvalidField = function() {
+    closeValidationPopup();
+    if (firstInvalidElement) {
+      firstInvalidElement.focus();
+      firstInvalidElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
+  document.getElementById('validationPopupModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'validationPopupModal') {
+      closeValidationPopup();
+    }
+  });
+
+  // Form Submission Interception
+  form.addEventListener('submit', (e) => {
+    const allErrors = [];
+    firstInvalidElement = null;
+    const currentRole = roleInput.value || 'student';
+
+    // 1. Name check
+    const nameRes = validateFullName(true);
+    if (!nameRes.valid) {
+      allErrors.push(nameRes.error);
+      if (!firstInvalidElement) firstInvalidElement = nameInput;
+    }
+
+    // 2. ID check
+    if (!studentIdInput.value.trim()) {
+      const idLabelText = currentRole === 'admin' ? 'Faculty / Admin ID' :
+                          currentRole === 'staff' ? 'Staff Employee ID' : 'University Roll / Student ID';
+      allErrors.push(`${idLabelText} is required.`);
+      if (!firstInvalidElement) firstInvalidElement = studentIdInput;
+    }
+
+    // 3. Email check
+    const emailRes = validateEmail(true);
+    if (!emailRes.valid) {
+      allErrors.push(emailRes.error);
+      if (!firstInvalidElement) firstInvalidElement = emailInput;
+    }
+
+    // 4. Phone check
+    const phoneRes = validatePhone(true);
+    if (!phoneRes.valid) {
+      allErrors.push(phoneRes.error);
+      if (!firstInvalidElement) firstInvalidElement = phoneInput;
+    }
+
+    // 5. Role passkey check
+    if (currentRole === 'staff') {
+      const keyVal = staffKeyInput.value.trim().toUpperCase();
+      if (!keyVal || (keyVal !== 'STAFF-DESK-2026' && keyVal !== 'CAMPUS-STAFF-2026' && keyVal !== 'STAFF123')) {
+        allErrors.push('Staff Authorization Key is invalid or empty. (Demo Key: STAFF-DESK-2026)');
+        if (!firstInvalidElement) firstInvalidElement = staffKeyInput;
+      }
+    } else if (currentRole === 'admin') {
+      const keyVal = adminKeyInput.value.trim().toUpperCase();
+      if (!keyVal || (keyVal !== 'ADMIN-MASTER-2026' && keyVal !== 'CAMPUS-ADMIN-2026' && keyVal !== 'ADMIN123')) {
+        allErrors.push('Master Administrator Passkey is invalid or empty. (Demo Key: ADMIN-MASTER-2026)');
+        if (!firstInvalidElement) firstInvalidElement = adminKeyInput;
+      }
+    }
+
+    // 6. Password check
+    const pwdRes = validatePassword(true);
+    if (!pwdRes.valid) {
+      pwdRes.errors.forEach(err => allErrors.push(err));
+      if (!firstInvalidElement) firstInvalidElement = passwordInput;
+    }
+
+    // Show popup modal if any validation errors
+    if (allErrors.length > 0) {
+      e.preventDefault();
+      showValidationPopup(allErrors, 'Registration Form Incomplete', firstInvalidElement);
+      return false;
+    }
+
+    return true;
+  });
+
+  // Initialize with role from URL or default
+  const initRole = "{{ selected_role or 'student' }}";
+  switchRegisterRole(initRole);
+
+  if (nameInput.value) validateFullName(false);
+  if (emailInput.value) validateEmail(false);
+  if (phoneInput.value) validatePhone(false);
+  if (passwordInput.value) validatePassword(false);
+});
+</script>
+{% endblock %}

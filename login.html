@@ -1,0 +1,493 @@
+{% extends "base.html" %}
+
+{% block title %}Sign In • Smart Campus Electronics Rental{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-4 sm:py-8">
+  
+  <!-- In-Page Back Navigation -->
+  <div class="mb-4">
+    <button type="button" onclick="goBack()" class="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-white hover:bg-slate-100 hover:text-blue-600 border border-slate-200 shadow-sm transition active:scale-95 group">
+      <i data-lucide="arrow-left" class="w-4 h-4 text-slate-400 group-hover:text-blue-600 group-hover:-translate-x-0.5 transition-transform"></i>
+      <span>Back to Equipment Catalog</span>
+    </button>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left Column: Role-Aware Login Form -->
+    <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200">
+      
+      <!-- Role Switcher Segmented Tabs -->
+      <div class="mb-6">
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Select Your Campus Portal Role:</label>
+        <div class="grid grid-cols-3 gap-1.5 p-1.5 bg-slate-100 rounded-xl border border-slate-200">
+          
+          <!-- Student Tab -->
+          <button 
+            type="button" 
+            id="tabStudent"
+            onclick="switchLoginRole('student')" 
+            class="role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all shadow-sm bg-white text-blue-700 shadow-slate-200"
+          >
+            <i data-lucide="graduation-cap" class="w-4 h-4 mb-1 sm:mb-0 sm:mr-1.5"></i>
+            <span>Student</span>
+          </button>
+
+          <!-- Staff Tab -->
+          <button 
+            type="button" 
+            id="tabStaff"
+            onclick="switchLoginRole('staff')" 
+            class="role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all"
+          >
+            <i data-lucide="qr-code" class="w-4 h-4 mb-1 sm:mb-0 sm:mr-1.5"></i>
+            <span>Staff Desk</span>
+          </button>
+
+          <!-- Admin Tab -->
+          <button 
+            type="button" 
+            id="tabAdmin"
+            onclick="switchLoginRole('admin')" 
+            class="role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all"
+          >
+            <i data-lucide="shield" class="w-4 h-4 mb-1 sm:mb-0 sm:mr-1.5"></i>
+            <span>Admin</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Portal Header Details (Dynamically updated via JS) -->
+      <div class="mb-6 pb-4 border-b border-slate-100">
+        <div class="flex items-center justify-between">
+          <span id="portalBadge" class="px-2.5 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 uppercase tracking-wider">
+            Student Rental Portal
+          </span>
+          <span id="portalRoleIcon" class="text-xs font-semibold text-slate-400 flex items-center">
+            <i data-lucide="lock" class="w-3.5 h-3.5 mr-1 text-slate-400"></i> Role Protected
+          </span>
+        </div>
+        <h2 id="portalHeading" class="text-2xl font-extrabold text-slate-900 mt-2">Sign In to Student Account</h2>
+        <p id="portalDescription" class="text-xs text-slate-500 mt-1">
+          Access high-end laptops, cameras, lab equipment rentals, and AI recommendation assistant.
+        </p>
+      </div>
+
+      <!-- Login Form with Proper Validation -->
+      <form id="loginForm" method="POST" action="{{ url_for('auth.login') }}" novalidate class="space-y-4">
+        <!-- Hidden Role Field -->
+        <input type="hidden" name="role" id="loginRoleInput" value="{{ selected_role or 'student' }}">
+
+        <!-- Email Field with Validation -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="loginEmail" id="emailLabel" class="block text-xs font-bold text-slate-700 uppercase">
+              Student Campus Email <span class="text-red-500">*</span>
+            </label>
+            <span id="emailValidationBadge" class="text-[10px] font-semibold text-slate-400">
+              Format check
+            </span>
+          </div>
+          <div class="relative">
+            <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+            <input 
+              type="email" 
+              id="loginEmail" 
+              name="email" 
+              required 
+              value="{{ email or '' }}"
+              placeholder="student@campus.edu" 
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              autocomplete="email"
+            >
+          </div>
+          <p id="emailHelpText" class="mt-1 text-xs text-slate-500 min-h-[16px]">
+            Enter your university registered email address.
+          </p>
+        </div>
+
+        <!-- Password Field -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="loginPassword" class="block text-xs font-bold text-slate-700 uppercase">
+              Account Password <span class="text-red-500">*</span>
+            </label>
+            <button type="button" id="toggleLoginPasswordBtn" class="text-[11px] font-semibold text-blue-600 hover:text-blue-800">
+              Show
+            </button>
+          </div>
+          <div class="relative">
+            <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3"></i>
+            <input 
+              type="password" 
+              id="loginPassword" 
+              name="password" 
+              required 
+              placeholder="••••••••" 
+              class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              autocomplete="current-password"
+            >
+          </div>
+        </div>
+
+        <!-- Remember Me & Forgot Password -->
+        <div class="flex items-center justify-between text-xs pt-1">
+          <label class="flex items-center text-slate-600 cursor-pointer">
+            <input type="checkbox" name="remember" class="rounded border-slate-300 text-blue-600 focus:ring-blue-500 mr-2">
+            Remember this terminal
+          </label>
+          <a href="#" class="text-blue-600 hover:underline">Forgot credentials?</a>
+        </div>
+
+        <!-- Submit Button -->
+        <button 
+          type="submit" 
+          id="loginSubmitBtn"
+          class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition duration-200 flex items-center justify-center mt-2"
+        >
+          <i data-lucide="log-in" class="w-4 h-4 mr-2"></i> Sign In to Portal
+        </button>
+
+        <!-- 1-Click Quick Fill Demo Credentials for Selected Role -->
+        <div class="pt-2">
+          <button 
+            type="button" 
+            id="quickFillBtn"
+            onclick="fillRoleDemoCredentials()" 
+            class="w-full py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center"
+          >
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 mr-1.5 text-indigo-500"></i>
+            <span id="quickFillBtnLabel">Auto-Fill Student Demo Credentials</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Registration Link with Role context -->
+      <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+        <div>
+          Need an account? 
+          <a id="registerPortalLink" href="{{ url_for('auth.register', role=selected_role or 'student') }}" class="font-bold text-blue-600 hover:underline ml-1">
+            Register Here
+          </a>
+        </div>
+        <button type="button" onclick="goBack()" class="font-semibold text-slate-500 hover:text-slate-800 flex items-center">
+          <i data-lucide="arrow-left" class="w-3.5 h-3.5 mr-1"></i> Back
+        </button>
+      </div>
+    </div>
+
+    <!-- Right Column: 1-Click Instant Demo Profiles Showcase -->
+    <div class="lg:col-span-5 space-y-4">
+      <div class="p-6 bg-gradient-to-br from-slate-900 via-slate-850 to-slate-800 rounded-2xl text-white shadow-xl border border-slate-700/60">
+        <div class="flex items-center space-x-2 text-indigo-400 text-xs font-bold uppercase tracking-wider mb-2">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          <span>Instant Evaluator Access</span>
+        </div>
+        <h3 class="text-xl font-bold">1-Click Role Access</h3>
+        <p class="text-xs text-slate-300 mt-1 mb-5 leading-relaxed">
+          Switch roles directly with preset accounts to inspect role-specific views and AI decision models:
+        </p>
+
+        <div class="space-y-2.5">
+          <!-- Student: High Trust -->
+          <a href="{{ url_for('auth.quick_login', role='student') }}" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 transition group">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                AS
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-bold text-white group-hover:text-blue-400 transition">Aarav Sharma</div>
+                <div class="text-xs text-slate-400">Student • Good Standing • 85% Trust</div>
+              </div>
+            </div>
+            <span class="text-xs text-emerald-400 font-semibold flex items-center">
+              Login <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+            </span>
+          </a>
+
+          <!-- Student: AI Risk Demo -->
+          <a href="{{ url_for('auth.quick_login', role='risk_student') }}" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-amber-900/40 transition group">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">
+                PP
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-bold text-white group-hover:text-amber-400 transition">Priya Patel (Risk Demo)</div>
+                <div class="text-xs text-amber-300/80">Student • Overdue Fines & Late History</div>
+              </div>
+            </div>
+            <span class="text-xs text-amber-400 font-semibold flex items-center">
+              Login <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+            </span>
+          </a>
+
+          <!-- Staff / Lab Tech -->
+          <a href="{{ url_for('auth.quick_login', role='staff') }}" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 transition group">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-sm">
+                RK
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-bold text-white group-hover:text-blue-400 transition">Prof. Rajesh Kumar</div>
+                <div class="text-xs text-slate-400">Staff Desk • QR Scanning & Damage Verification</div>
+              </div>
+            </div>
+            <span class="text-xs text-blue-400 font-semibold flex items-center">
+              Login <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+            </span>
+          </a>
+
+          <!-- Admin / Lab Director -->
+          <a href="{{ url_for('auth.quick_login', role='admin') }}" class="flex items-center justify-between p-3.5 rounded-xl bg-slate-800/90 hover:bg-slate-700 border border-purple-900/40 transition group">
+            <div class="flex items-center space-x-3">
+              <div class="w-9 h-9 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-sm">
+                SR
+              </div>
+              <div class="text-left">
+                <div class="text-sm font-bold text-white group-hover:text-purple-400 transition">Dr. Sunita Rao</div>
+                <div class="text-xs text-slate-400">Admin • AI Demand Forecast & Risk Radar</div>
+              </div>
+            </div>
+            <span class="text-xs text-purple-400 font-semibold flex items-center">
+              Login <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1"></i>
+            </span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Security / Role Verification Banner -->
+      <div class="p-4 bg-white rounded-2xl border border-slate-200 text-xs text-slate-600 shadow-sm flex items-start space-x-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <div class="font-bold text-slate-800">Campus Identity Federation</div>
+          <p class="text-[11px] text-slate-500 mt-0.5">
+            Role authentication enforces strict privilege boundaries across students, desk operators, and administrators.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- Interactive Validation Pop-Up Dialog                           -->
+<!-- ============================================================== -->
+<div id="loginValidationModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+  <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 text-left animate-in fade-in zoom-in-95 duration-200">
+    <div class="flex items-start space-x-3">
+      <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+        <i data-lucide="alert-circle" class="w-5 h-5"></i>
+      </div>
+      <div class="flex-1">
+        <h3 id="loginModalTitle" class="text-base font-extrabold text-slate-900">Invalid Input</h3>
+        <p id="loginModalMsg" class="text-xs text-slate-500 mt-1">Please enter a valid campus email format.</p>
+      </div>
+      <button type="button" onclick="closeLoginValidationModal()" class="text-slate-400 hover:text-slate-600 p-1">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+    <div class="mt-5 flex justify-end">
+      <button type="button" onclick="closeLoginValidationModal()" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md shadow-red-500/20 transition">
+        Understood
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const roleInput = document.getElementById('loginRoleInput');
+  const emailInput = document.getElementById('loginEmail');
+  const passwordInput = document.getElementById('loginPassword');
+  const form = document.getElementById('loginForm');
+  const toggleBtn = document.getElementById('toggleLoginPasswordBtn');
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+  const roleConfigs = {
+    student: {
+      title: 'Sign In to Student Account',
+      badge: 'Student Rental Portal',
+      badgeClass: 'px-2.5 py-1 text-xs font-bold rounded-full bg-blue-50 text-blue-700 uppercase tracking-wider',
+      desc: 'Access high-end laptops, cameras, lab equipment rentals, and AI recommendation assistant.',
+      emailLabel: 'Student Campus Email *',
+      placeholder: 'student@campus.edu',
+      demoEmail: 'student@campus.edu',
+      demoPass: 'student123',
+      fillBtn: 'Auto-Fill Student Demo Credentials',
+      btnColor: 'from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/25',
+      regLink: "{{ url_for('auth.register', role='student') }}"
+    },
+    staff: {
+      title: 'Sign In to Staff / Tech Desk',
+      badge: 'Staff & Lab Tech Portal',
+      badgeClass: 'px-2.5 py-1 text-xs font-bold rounded-full bg-cyan-50 text-cyan-800 uppercase tracking-wider',
+      desc: 'Camera QR scanning station, device checkout issuance, check-in reception, and AI damage audits.',
+      emailLabel: 'Staff Employee Email *',
+      placeholder: 'staff@campus.edu',
+      demoEmail: 'staff@campus.edu',
+      demoPass: 'staff123',
+      fillBtn: 'Auto-Fill Staff Demo Credentials',
+      btnColor: 'from-cyan-600 to-blue-700 hover:from-cyan-700 hover:to-blue-800 shadow-cyan-500/25',
+      regLink: "{{ url_for('auth.register', role='staff') }}"
+    },
+    admin: {
+      title: 'Sign In to Admin Console',
+      badge: 'Administrator & Lab Director Portal',
+      badgeClass: 'px-2.5 py-1 text-xs font-bold rounded-full bg-purple-50 text-purple-800 uppercase tracking-wider',
+      desc: 'Predictive ML demand forecasting, booking approvals, AI student risk radar, and inventory control.',
+      emailLabel: 'Administrator Email *',
+      placeholder: 'admin@campus.edu',
+      demoEmail: 'admin@campus.edu',
+      demoPass: 'admin123',
+      fillBtn: 'Auto-Fill Admin Demo Credentials',
+      btnColor: 'from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 shadow-purple-500/25',
+      regLink: "{{ url_for('auth.register', role='admin') }}"
+    }
+  };
+
+  // Toggle Password
+  if (toggleBtn && passwordInput) {
+    toggleBtn.addEventListener('click', () => {
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleBtn.textContent = 'Hide';
+      } else {
+        passwordInput.type = 'password';
+        toggleBtn.textContent = 'Show';
+      }
+    });
+  }
+
+  // Switch Login Role
+  window.switchLoginRole = function(role) {
+    if (!roleConfigs[role]) role = 'student';
+    roleInput.value = role;
+
+    const conf = roleConfigs[role];
+    document.getElementById('portalHeading').textContent = conf.title;
+    document.getElementById('portalBadge').textContent = conf.badge;
+    document.getElementById('portalBadge').className = conf.badgeClass;
+    document.getElementById('portalDescription').textContent = conf.desc;
+    document.getElementById('emailLabel').innerHTML = conf.emailLabel;
+    emailInput.placeholder = conf.placeholder;
+    document.getElementById('quickFillBtnLabel').textContent = conf.fillBtn;
+    document.getElementById('registerPortalLink').href = conf.regLink;
+
+    // Update active tab styles
+    ['student', 'staff', 'admin'].forEach(r => {
+      const btn = document.getElementById('tab' + r.charAt(0).toUpperCase() + r.slice(1));
+      if (btn) {
+        if (r === role) {
+          btn.className = 'role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold transition-all shadow-sm bg-white text-blue-700 shadow-slate-200';
+        } else {
+          btn.className = 'role-tab flex flex-col sm:flex-row items-center justify-center py-2 px-2 rounded-lg text-xs font-bold text-slate-600 hover:text-slate-900 transition-all';
+        }
+      }
+    });
+
+    if (window.lucide) lucide.createIcons();
+  };
+
+  // Quick Fill Credentials
+  window.fillRoleDemoCredentials = function() {
+    const currentRole = roleInput.value || 'student';
+    const conf = roleConfigs[currentRole];
+    if (conf) {
+      emailInput.value = conf.demoEmail;
+      passwordInput.value = conf.demoPass;
+      validateLoginEmail(true);
+      showToast(`Filled ${currentRole.toUpperCase()} demo credentials`, 'success');
+    }
+  };
+
+  // Email Validation Logic
+  function validateLoginEmail(showFeedback = true) {
+    const val = emailInput.value.trim();
+    const badge = document.getElementById('emailValidationBadge');
+    const help = document.getElementById('emailHelpText');
+
+    if (!val) {
+      if (showFeedback) {
+        emailInput.classList.remove('border-red-400', 'ring-2', 'ring-red-200', 'border-emerald-400');
+        badge.textContent = 'Format check';
+        badge.className = 'text-[10px] font-semibold text-slate-400';
+      }
+      return false;
+    }
+
+    if (!emailRegex.test(val)) {
+      if (showFeedback) {
+        emailInput.classList.add('border-red-400', 'ring-2', 'ring-red-200');
+        badge.textContent = '✕ Invalid format';
+        badge.className = 'text-[10px] font-semibold text-red-600';
+        help.textContent = "Please enter a valid format (e.g. name@campus.edu).";
+      }
+      return false;
+    }
+
+    if (showFeedback) {
+      emailInput.classList.remove('border-red-400', 'ring-2', 'ring-red-200');
+      emailInput.classList.add('border-emerald-400');
+      badge.textContent = '✓ Valid format';
+      badge.className = 'text-[10px] font-semibold text-emerald-600';
+      help.textContent = "Campus email format verified.";
+    }
+    return true;
+  }
+
+  emailInput.addEventListener('input', () => validateLoginEmail(true));
+  emailInput.addEventListener('blur', () => {
+    if (emailInput.value.trim().length > 0 && !validateLoginEmail(true)) {
+      showLoginValidationModal("Incorrect Email Address", "Please enter a valid campus email address (e.g. student@campus.edu). Make sure it includes '@' and a domain extension.");
+    }
+  });
+
+  // Modal helpers
+  window.showLoginValidationModal = function(title, msg) {
+    const modal = document.getElementById('loginValidationModal');
+    document.getElementById('loginModalTitle').textContent = title;
+    document.getElementById('loginModalMsg').textContent = msg;
+    if (modal) {
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+  };
+
+  window.closeLoginValidationModal = function() {
+    const modal = document.getElementById('loginValidationModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+  };
+
+  // Form Submission
+  form.addEventListener('submit', (e) => {
+    if (!validateLoginEmail(true)) {
+      e.preventDefault();
+      showLoginValidationModal("Valid Email Required", "Please enter a complete and valid campus email address (e.g. user@campus.edu) to sign in.");
+      emailInput.focus();
+      return false;
+    }
+    if (!passwordInput.value.trim()) {
+      e.preventDefault();
+      showLoginValidationModal("Password Required", "Please enter your account password to sign in.");
+      passwordInput.focus();
+      return false;
+    }
+    return true;
+  });
+
+  // Initialize with selected role from URL or default
+  const initRole = "{{ selected_role or 'student' }}";
+  switchLoginRole(initRole);
+});
+</script>
+{% endblock %}
